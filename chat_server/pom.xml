@@ -12,6 +12,11 @@
     <artifactId>chat_server</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>com.lxb</groupId>
+            <artifactId>chat_common</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>junit</groupId>
@@ -52,11 +57,16 @@
             <artifactId>spring-tx</artifactId>
         </dependency>
 
-        <!--protostuff-->
+<!--        &lt;!&ndash;protostuff&ndash;&gt;
         <dependency>
             <groupId>io.protostuff</groupId>
-            <artifactId>protostuff</artifactId>
+            <artifactId>protostuff-core</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.protostuff</groupId>
+            <artifactId>protostuff-runtime</artifactId>
+        </dependency>-->
 
         <!--guava-->
         <dependency>

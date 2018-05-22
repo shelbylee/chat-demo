@@ -12,13 +12,18 @@
     <artifactId>chat_client</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>com.lxb</groupId>
+            <artifactId>chat_common</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
         </dependency>
 
-        <!--protostuff-->
+<!--        &lt;!&ndash;protostuff&ndash;&gt;
         <dependency>
             <groupId>io.protostuff</groupId>
             <artifactId>protostuff-core</artifactId>
@@ -27,7 +32,7 @@
         <dependency>
             <groupId>io.protostuff</groupId>
             <artifactId>protostuff-runtime</artifactId>
-        </dependency>
+        </dependency>-->
 
         <!--lombok-->
         <dependency>
