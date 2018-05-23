@@ -6,4 +6,6 @@
 
     <context:component-scan base-package="com.lxb.chat.server"/>
 
+    <bean class="com.lxb.chat.server.util.ApplicationContextHelper" lazy-init="false"/>
+
 </beans>

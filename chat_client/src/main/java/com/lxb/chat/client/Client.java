@@ -3,7 +3,10 @@ package com.lxb.chat.client;
 import com.lxb.common.domain.Message;
 import com.lxb.common.domain.MessageHeader;
 import com.lxb.common.domain.Response;
+import com.lxb.common.domain.ResponseHeader;
 import com.lxb.common.enumeration.MessageType;
+import com.lxb.common.enumeration.ResponseNum;
+import com.lxb.common.util.DateUtil;
 import com.lxb.common.util.ProtostuffUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,8 +39,6 @@ public class Client extends Frame {
     // 记录发送方
     private String sender;
 
-    private Receiver receiver;
-
     private boolean isLogin;
     private boolean isConnected;
 
@@ -45,8 +46,10 @@ public class Client extends Frame {
     private TextArea taContent;
 
     private Client(int x, int y, int w, int h) {
+        log.info("客户端启动中..._(•̀ω•́ 」∠)_");
         initWindow(x, y, w, h);
         registerChannel();
+        login();
     }
 
     private void initWindow(int x, int y, int w, int h) {
@@ -86,6 +89,7 @@ public class Client extends Frame {
             byteBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
             // 连接成功
             isConnected = true;
+            log.info("客户端成功连接服务器");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -111,7 +115,7 @@ public class Client extends Frame {
 
             message = new Message(
                     MessageHeader.builder()
-                            .type(MessageType.PRIVATE_CHAT)
+                            .type(MessageType.PRIVATE)
                             .sender(sender)
                             .receiver(receiver)
                             .timeStamp(System.currentTimeMillis())
@@ -121,7 +125,7 @@ public class Client extends Frame {
         } else { // 群聊
             message = new Message(
                     MessageHeader.builder()
-                            .type(MessageType.PUBLIC_CHAT)
+                            .type(MessageType.PUBLIC)
                             .sender(sender)
                             .timeStamp(System.currentTimeMillis())
                             .build(),
@@ -144,7 +148,7 @@ public class Client extends Frame {
 
         Message message = new Message(
                 MessageHeader.builder()
-                    .type(MessageType.LOG_IN)
+                    .type(MessageType.LOGIN)
                     .sender(username)
                     .timeStamp(System.currentTimeMillis())
                     .build(),
@@ -167,7 +171,7 @@ public class Client extends Frame {
 
         Message message = new Message(
                 MessageHeader.builder()
-                    .type(MessageType.LOG_OUT)
+                    .type(MessageType.LOGOUT)
                     .sender(sender)
                     .timeStamp(System.currentTimeMillis())
                     .build(),
@@ -209,7 +213,7 @@ public class Client extends Frame {
         public void run() {
             try {
                 while (isConnected) {
-                    int bufferSize;
+                    int size;
                     // 阻塞式的
                     selector.select();
 
@@ -221,9 +225,9 @@ public class Client extends Frame {
                         // 读就绪
                         if (selectionKey.isReadable()) {
                             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                            while ((bufferSize = socketChannel.read(byteBuffer)) > 0) {
+                            while ((size = socketChannel.read(byteBuffer)) > 0) {
                                 byteBuffer.flip();
-                                outputStream.write(byteBuffer.array(), 0, bufferSize);
+                                outputStream.write(byteBuffer.array(), 0, size);
                                 byteBuffer.clear();
                             }
                             byte[] bytes = outputStream.toByteArray();
@@ -234,20 +238,73 @@ public class Client extends Frame {
                     }
                 }
             } catch (IOException e) {
-
+                JOptionPane.showMessageDialog(null, "服务器已关闭，连接已断开，请重新登录");
+                isLogin = false;
             }
         }
 
-        // TODO: handle response
         /**
          * 处理服务器的响应信息
          * @param response response
          */
         private void handleResponse(Response response) {
 
+            log.info(response.toString());
+            ResponseHeader header = response.getHeader();
+
+            switch (header.getType()) {
+                case PROMPT:
+                    if (header.getResponseNum() != null) {
+                        ResponseNum num = ResponseNum.getResponseNumFromMap(header.getResponseNum());
+                        if (num == ResponseNum.LOGIN_SUCCESS) {
+                            isLogin = true;
+                            log.info("登录成功");
+                        } else if (num == ResponseNum.LOGOUT) {
+                            log.info("下线成功");
+                            break;
+                        }
+                    }
+                    String info = new String(response.getBody(), charset);
+                    JOptionPane.showMessageDialog(Client.this, info);
+                    break;
+                case MESSAGE:
+                    String text = format(taContent.getText(), response);
+                    taContent.setText(text);
+                    taContent.setCaretPosition(text.length());
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
+    private String format(String originalText, Response response) {
+
+        ResponseHeader header = response.getHeader();
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append(originalText)
+                .append(header.getSender())
+                .append(": ")
+                .append(new String(response.getBody(), charset))
+                .append("    ")
+                .append(DateUtil.formatLocalDateTime(header.getTimeStamp()))
+                .append("\n");
+
+        return stringBuilder.toString();
+    }
+
+    /**
+     * 启动线程最好作为一个单独的方法
+     * 不要再构造方法里启动，因为可能构造未完成就使用了成员变量
+     */
+    private void startClient() {
+        Receiver receiver = new Receiver();
+        new Thread(receiver).start();
+    }
+
     public static void main(String[] args) {
+        Client client = new Client(200, 200, 300, 200);
+        client.startClient();
     }
 }

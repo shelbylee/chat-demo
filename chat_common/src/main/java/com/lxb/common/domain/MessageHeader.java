@@ -2,7 +2,11 @@ package com.lxb.common.domain;
 
 import com.lxb.common.enumeration.MessageType;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Builder
 public class MessageHeader {
 

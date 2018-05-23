@@ -2,13 +2,13 @@ package com.lxb.common.enumeration;
 
 public enum MessageType {
 
-    LOG_IN(1, "登录"),
+    LOGIN(1, "登录"),
 
-    LOG_OUT(2, "下线"),
+    LOGOUT(2, "下线"),
 
-    PRIVATE_CHAT(3, "私聊"),
+    PRIVATE(3, "私聊"),
 
-    PUBLIC_CHAT(4, "群聊");
+    PUBLIC(4, "群聊");
 
     private int num;
 
