@@ -3,14 +3,11 @@ package com.lxb.common.domain;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
-/**
- * 用于读写的 Message
- */
 @Builder
 @AllArgsConstructor
-public class Message {
+public class Response {
 
-    private MessageHeader header;
+    private ResponseHeader header;
 
     private byte[] body;
 }

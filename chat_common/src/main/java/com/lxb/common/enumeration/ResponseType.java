@@ -1,20 +1,15 @@
 package com.lxb.common.enumeration;
 
-public enum MessageType {
+public enum  ResponseType {
+    MESSAGE(1, "消息"),
 
-    LOG_IN(1, "登录"),
-
-    LOG_OUT(2, "下线"),
-
-    PRIVATE_CHAT(3, "私聊"),
-
-    PUBLIC_CHAT(4, "群聊");
+    PROMPT(2, "提示");
 
     private int num;
 
     private String description;
 
-    MessageType(int num, String description) {
+    ResponseType(int num, String description) {
         this.num = num;
         this.description = description;
     }

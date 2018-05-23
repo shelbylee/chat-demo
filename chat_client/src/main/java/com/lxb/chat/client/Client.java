@@ -2,11 +2,16 @@ package com.lxb.chat.client;
 
 import com.lxb.common.domain.Message;
 import com.lxb.common.domain.MessageHeader;
+import com.lxb.common.domain.Response;
 import com.lxb.common.enumeration.MessageType;
 import com.lxb.common.util.ProtostuffUtil;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -15,7 +20,9 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 
+@Slf4j
 public class Client extends Frame {
 
     private final static int DEFAULT_BUFFER_SIZE = 1024;
@@ -26,17 +33,47 @@ public class Client extends Frame {
     private SocketChannel socketChannel;
     private ByteBuffer byteBuffer;
 
+    // 记录发送方
     private String sender;
 
+    private Receiver receiver;
+
     private boolean isLogin;
+    private boolean isConnected;
+
+    private TextField tfText;
+    private TextArea taContent;
 
     private Client(int x, int y, int w, int h) {
         initWindow(x, y, w, h);
         registerChannel();
     }
 
-    // TODO: init window
     private void initWindow(int x, int y, int w, int h) {
+
+        this.tfText = new TextField();
+        this.taContent = new TextArea();
+        this.setBounds(x, y, w, h);
+        this.setLayout(new BorderLayout());
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                setVisible(false);
+                disConnect();
+                System.exit(0);
+            }
+        });
+        this.taContent.setEditable(false);
+        this.add(tfText, BorderLayout.SOUTH);
+        this.add(taContent, BorderLayout.NORTH);
+        this.tfText.addActionListener((actionEvent) -> {
+            String str = tfText.getText().trim();
+            tfText.setText("");
+            sendMessage(str);
+        });
+        this.pack();
+        this.setVisible(true);
+
     }
 
     private void registerChannel() {
@@ -47,13 +84,58 @@ public class Client extends Frame {
             socketChannel.configureBlocking(false);
             socketChannel.register(selector, SelectionKey.OP_READ);
             byteBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
+            // 连接成功
+            isConnected = true;
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     /**
-     * 登录，并将登陆 message 写入 channel
+     * 发送信息
+     * @param text 用户发送的信息
+     */
+    private void sendMessage(String text) {
+
+        // 如果没有登录，不能发送消息
+        if (!isLogin) {
+            JOptionPane.showMessageDialog(null, "您还没有登录，无法发送消息！");
+            return;
+        }
+
+        Message message;
+        // 私聊，以 "@ + 接收方 + :" 的方式
+        if (text.startsWith("@")) {
+            String[] strings = text.split(":");
+            String receiver = strings[0].substring(1);
+
+            message = new Message(
+                    MessageHeader.builder()
+                            .type(MessageType.PRIVATE_CHAT)
+                            .sender(sender)
+                            .receiver(receiver)
+                            .timeStamp(System.currentTimeMillis())
+                            .build(),
+                    strings[1].getBytes(charset)
+            );
+        } else { // 群聊
+            message = new Message(
+                    MessageHeader.builder()
+                            .type(MessageType.PUBLIC_CHAT)
+                            .sender(sender)
+                            .timeStamp(System.currentTimeMillis())
+                            .build(),
+                    text.getBytes(charset)
+            );
+        }
+
+        log.info("聊天发送信息" + message.toString());
+        writeMessageIntoChannel(message);
+
+    }
+
+    /**
+     * 登录
      */
     private void login() {
 
@@ -73,11 +155,42 @@ public class Client extends Frame {
         this.sender = username;
     }
 
-    // TODO: log out
     /**
-     * 用户下线，并将 message 写入 channel
+     * 用户下线
      */
     private void logout() {
+
+        if (!isLogin)
+            return;
+
+        System.out.println("客户端发送下线请求");
+
+        Message message = new Message(
+                MessageHeader.builder()
+                    .type(MessageType.LOG_OUT)
+                    .sender(sender)
+                    .timeStamp(System.currentTimeMillis())
+                    .build(),
+                null
+        );
+
+        writeMessageIntoChannel(message);
+        isConnected = false;
+    }
+
+    /**
+     * 客户端断开连接
+     */
+    private void disConnect() {
+        logout();
+        try {
+            // 防止立马断开连接可能导致之前的消息无法送达
+            Thread.sleep(10);
+            socketChannel.socket().close();
+            socketChannel.close();
+        } catch (InterruptedException | IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void writeMessageIntoChannel(Message message) {
@@ -94,6 +207,43 @@ public class Client extends Frame {
     private class Receiver implements Runnable {
         @Override
         public void run() {
+            try {
+                while (isConnected) {
+                    int bufferSize;
+                    // 阻塞式的
+                    selector.select();
+
+                    Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
+                    while (iterator.hasNext()) {
+                        SelectionKey selectionKey = iterator.next();
+                        iterator.remove();
+
+                        // 读就绪
+                        if (selectionKey.isReadable()) {
+                            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                            while ((bufferSize = socketChannel.read(byteBuffer)) > 0) {
+                                byteBuffer.flip();
+                                outputStream.write(byteBuffer.array(), 0, bufferSize);
+                                byteBuffer.clear();
+                            }
+                            byte[] bytes = outputStream.toByteArray();
+                            outputStream.close();
+                            Response response = ProtostuffUtil.deserialize(bytes, Response.class);
+                            handleResponse(response);
+                        }
+                    }
+                }
+            } catch (IOException e) {
+
+            }
+        }
+
+        // TODO: handle response
+        /**
+         * 处理服务器的响应信息
+         * @param response response
+         */
+        private void handleResponse(Response response) {
 
         }
     }
