@@ -92,6 +92,14 @@
                 <version>1.7.5</version>
             </dependency>
 
+            <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-log4j12 -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>1.7.5</version>
+            </dependency>
+
+
             <!--tools-->
             <dependency>
                 <groupId>commons-collections</groupId>
@@ -134,7 +142,7 @@
         </dependencies>
     </dependencyManagement>
 
-    <build>
+<!--    <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -155,6 +163,6 @@
                 </configuration>
             </plugin>
         </plugins>
-    </build>
+    </build>-->
 
 </project>

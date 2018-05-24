@@ -1,5 +1,6 @@
 package com.lxb.chat.server;
 
+import com.lxb.chat.server.exception.InterruptedExceptionHandler;
 import com.lxb.chat.server.handler.message.MessageHandler;
 import com.lxb.chat.server.util.ApplicationContextHelper;
 import com.lxb.common.domain.Message;
@@ -16,6 +17,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
+import java.util.Scanner;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -35,9 +37,14 @@ public class Server {
 
     private ExecutorService threadPool;
 
+    private InterruptedExceptionHandler exceptionHandler;
+
+    private Listener listener;
+
     private Server() {
         log.info("服务器启动中..._(•̀ω•́ 」∠)_");
         init();
+        log.info("服务器启动完毕~");
     }
 
     private void init() {
@@ -56,6 +63,8 @@ public class Server {
                 new ArrayBlockingQueue<>(10),
                 new ThreadPoolExecutor.CallerRunsPolicy());
         this.usersOnline = new AtomicInteger(0);
+        this.exceptionHandler = ApplicationContextHelper.popBean("interruptedExceptionHandler");
+        this.listener = new Listener();
     }
 
     /**
@@ -121,7 +130,21 @@ public class Server {
             SocketChannel client = serverSocketChannel.accept();
             client.configureBlocking(false);
             client.register(selector, SelectionKey.OP_READ);
-            log.info("服务器已连接客户端：{}", client);
+            log.info("服务器连接客户端：{}", client);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 关闭服务器
+     */
+    private void stopServer() {
+        try {
+            listener.shutdown();
+            threadPool.shutdown();
+            serverSocketChannel.close();
+            System.exit(0);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -176,7 +199,6 @@ public class Server {
                             .toString()
                             .toLowerCase());
 
-                // TODO: solve null pointer exception
                 try {
                     messageHandler.handle(message,
                             selector,
@@ -184,6 +206,7 @@ public class Server {
                             usersOnline);
                 } catch (InterruptedException e) {
                     log.error("服务器线程被中断");
+                    exceptionHandler.handle(clientChannel, message);
                     e.printStackTrace();
                 }
 
@@ -195,10 +218,21 @@ public class Server {
     }
 
     private void startServer() {
+        new Thread(listener).start();
     }
 
     public static void main(String[] args) {
         Server server = new Server();
         server.startServer();
+
+        Scanner scanner = new Scanner(System.in, "UTF-8");
+        while (scanner.hasNext()) {
+            String next = scanner.next();
+            if (next.equalsIgnoreCase("QUIT")) {
+                log.info("准备关闭服务器..._(:з」∠)_");
+                server.stopServer();
+                log.info("服务器已关闭");
+            }
+        }
     }
 }

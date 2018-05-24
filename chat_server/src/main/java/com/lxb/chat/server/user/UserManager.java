@@ -55,4 +55,17 @@ public class UserManager {
         usersOnline.remove(channel);
         log.info("{}已下线", username);
     }
+
+    public synchronized SocketChannel getUserChannel(String username) {
+
+        User user = userMap.get(username);
+        Preconditions.checkNotNull(user, "该用户不存在");
+
+        SocketChannel channel = user.getChannel();
+        Preconditions.checkNotNull(usersOnline);
+        if (usersOnline.containsKey(channel))
+            return channel;
+        else
+            return null;
+    }
 }

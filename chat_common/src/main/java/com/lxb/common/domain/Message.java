@@ -1,9 +1,6 @@
 package com.lxb.common.domain;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 /**
  * 用于读写的 Message
@@ -12,6 +9,7 @@ import lombok.Setter;
 @Setter
 @Builder
 @AllArgsConstructor
+@NoArgsConstructor
 public class Message {
 
     private MessageHeader header;

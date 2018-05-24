@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class MessageHandler {
 
-    private static final String SYSTEM_PROMPT = "系统提示";
+    protected static final String SYSTEM_PROMPT = "系统提示";
 
     public abstract void handle(Message message,
                                 Selector selector,

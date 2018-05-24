@@ -36,6 +36,8 @@ public class Client extends Frame {
     private SocketChannel socketChannel;
     private ByteBuffer byteBuffer;
 
+    private Receiver receiver;
+
     // 记录发送方
     private String sender;
 
@@ -47,9 +49,10 @@ public class Client extends Frame {
 
     private Client(int x, int y, int w, int h) {
         log.info("客户端启动中..._(•̀ω•́ 」∠)_");
-        initWindow(x, y, w, h);
         registerChannel();
+        log.info("客户端启动完毕~");
         login();
+        initWindow(x, y, w, h);
     }
 
     private void initWindow(int x, int y, int w, int h) {
@@ -186,8 +189,13 @@ public class Client extends Frame {
      * 客户端断开连接
      */
     private void disConnect() {
+
+        if (!isConnected)
+            return;
+
         logout();
         try {
+            receiver.shutdown();
             // 防止立马断开连接可能导致之前的消息无法送达
             Thread.sleep(10);
             socketChannel.socket().close();
@@ -209,10 +217,13 @@ public class Client extends Frame {
      * 接受信息的线程
      */
     private class Receiver implements Runnable {
+
+        private boolean connected = true;
+
         @Override
         public void run() {
             try {
-                while (isConnected) {
+                while (connected) {
                     int size;
                     // 阻塞式的
                     selector.select();
@@ -249,7 +260,7 @@ public class Client extends Frame {
          */
         private void handleResponse(Response response) {
 
-            log.info(response.toString());
+            System.out.println(response);
             ResponseHeader header = response.getHeader();
 
             switch (header.getType()) {
@@ -276,6 +287,10 @@ public class Client extends Frame {
                     break;
             }
         }
+
+        private void shutdown() {
+            connected = false;
+        }
     }
 
     private String format(String originalText, Response response) {
@@ -299,7 +314,7 @@ public class Client extends Frame {
      * 不要再构造方法里启动，因为可能构造未完成就使用了成员变量
      */
     private void startClient() {
-        Receiver receiver = new Receiver();
+        this.receiver = new Receiver();
         new Thread(receiver).start();
     }
 
