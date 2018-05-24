@@ -48,11 +48,11 @@ public class Client extends Frame {
     private TextArea taContent;
 
     private Client(int x, int y, int w, int h) {
-        log.info("客户端启动中..._(•̀ω•́ 」∠)_");
-        registerChannel();
-        log.info("客户端启动完毕~");
-        login();
+        System.out.println("客户端启动中..._(•̀ω•́ 」∠)_");
         initWindow(x, y, w, h);
+        registerChannel();
+        System.out.println("客户端启动完毕~");
+        login();
     }
 
     private void initWindow(int x, int y, int w, int h) {
@@ -92,7 +92,7 @@ public class Client extends Frame {
             byteBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
             // 连接成功
             isConnected = true;
-            log.info("客户端成功连接服务器");
+            System.out.println("客户端成功连接服务器");
         } catch (IOException e) {
             e.printStackTrace();
         }

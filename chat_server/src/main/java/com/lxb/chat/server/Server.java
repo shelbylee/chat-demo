@@ -42,9 +42,9 @@ public class Server {
     private Listener listener;
 
     private Server() {
-        log.info("服务器启动中..._(•̀ω•́ 」∠)_");
+        System.out.println("服务器启动中..._(•̀ω•́ 」∠)_");
         init();
-        log.info("服务器启动完毕~");
+        System.out.println("服务器启动完毕~");
     }
 
     private void init() {
@@ -229,9 +229,8 @@ public class Server {
         while (scanner.hasNext()) {
             String next = scanner.next();
             if (next.equalsIgnoreCase("QUIT")) {
-                log.info("准备关闭服务器..._(:з」∠)_");
                 server.stopServer();
-                log.info("服务器已关闭");
+                System.out.println("服务器已关闭 _(:з」∠)_");
             }
         }
     }
